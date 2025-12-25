@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bubble English Game</title>
+<style>
+body { font-family: Arial, sans-serif; text-align:center; padding:20px; background-color:#f0f8ff; position:relative; }
+h1 { color:#1e90ff; }
+#score { font-size:20px; margin:10px; }
+#word { font-size:28px; margin:20px 0; }
+button { margin:10px; padding:10px 25px; font-size:18px; cursor:pointer; border:none; border-radius:8px; background-color:#1e90ff; color:white; transition:transform 0.1s, background-color 0.2s; }
+button:hover { background-color:#4682b4; }
+button:active { transform: scale(0.95); }
+#pauseBtn { position:absolute; top:20px; right:20px; padding:8px 15px; font-size:16px; background-color:#ff4500; }
+#overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); display:none; z-index:10; }
+#menu { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border-radius:12px; display:none; z-index:11; width:400px; text-align:left; }
+#menu h2, #menu h3 { text-align:center; }
+#message { font-size:24px; margin-top:15px; color:green; }
+.wrong { color:red; }
+#startMenu { position:fixed; top:0; left:0; width:100%; height:100%; background-color:#f0f8ff; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:20; }
+#startMenu h1 { font-size:36px; color:#1e90ff; margin-bottom:30px; }
+#startMenu button { font-size:24px; padding:15px 40px; background:#1e90ff; color:white; border:none; border-radius:10px; cursor:pointer; transition:0.2s; }
+#startMenu button:hover { background:#4682b4; }
+#startMenu button:active { transform: scale(0.95); }
+</style>
+</head>
+<body>
+
+<div id="startMenu">
+    <h1>Bubble English Game</h1>
+    <button id="playBtn">PLAY</button>
+</div>
+
+<div id="overlay"></div>
+<div id="menu">
+    <h2>Tentang Game Ini</h2>
+    <p>Bubble English Game</p>
+    <p>Versi: 2.3</p>
+    <p>Pembuat: Defran Bubble</p>
+    <p>Tanggal dibuat: 25 Desember 2025</p>
+    <h3>Privacy Policy</h3>
+    <p>Game ini sepenuhnya offline dan tidak mengirim data pribadi apapun. Semua aktivitas pemain disimpan hanya di komputer Anda.</p>
+    <h3>Skor Tertinggi</h3>
+    <p id="highScore">0</p>
+    <button id="resetGame">Reset Game</button>
+    <button id="closeMenu">Tutup</button>
+</div>
+
+<div id="score">Skor: 0</div>
+<p id="word">Kata muncul di sini</p>
+<div id="message"></div>
+<button id="btn1">Pilihan 1</button>
+<button id="btn2">Pilihan 2</button>
+<button id="pauseBtn">PAUSE</button>
+
+<audio id="soundCorrect" src="https://freesound.org/data/previews/320/320181_5260870-lq.mp3"></audio>
+<audio id="soundWrong" src="https://freesound.org/data/previews/151/151022_2738291-lq.mp3"></audio>
+
+<script>
+let score = 0;
+let paused = false;
+let currentWord;
+let usedWords = [];
+
+const allWords = [
+    // Hewan
+    {english:"Cat", correct:"Kucing"},
+    {english:"Dog", correct:"Anjing"},
+    {english:"Elephant", correct:"Gajah"},
+    {english:"Lion", correct:"Singa"},
+    {english:"Tiger", correct:"Macan"},
+    {english:"Monkey", correct:"Monyet"},
+    {english:"Horse", correct:"Kuda"},
+    {english:"Cow", correct:"Sapi"},
+    {english:"Pig", correct:"Babi"},
+    {english:"Sheep", correct:"Domba"},
+    {english:"Goat", correct:"Kambing"},
+    {english:"Rabbit", correct:"Kelinci"},
+    {english:"Bear", correct:"Beruang"},
+    {english:"Fox", correct:"Rubah"},
+    {english:"Wolf", correct:"Serigala"},
+    // Kota
+    {english:"Paris", correct:"Paris"},
+    {english:"Tokyo", correct:"Tokyo"},
+    {english:"London", correct:"London"},
+    {english:"New York", correct:"New York"},
+    {english:"Sydney", correct:"Sydney"},
+    {english:"Rome", correct:"Roma"},
+    {english:"Berlin", correct:"Berlin"},
+    {english:"Moscow", correct:"Moskow"},
+    {english:"Madrid", correct:"Madrid"},
+    {english:"Jakarta", correct:"Jakarta"},
+    // Makanan
+    {english:"Bread", correct:"Roti"},
+    {english:"Rice", correct:"Nasi"},
+    {english:"Chicken", correct:"Ayam"},
+    {english:"Fish", correct:"Ikan"},
+    {english:"Apple", correct:"Apel"},
+    {english:"Banana", correct:"Pisang"},
+    {english:"Egg", correct:"Telur"},
+    {english:"Cheese", correct:"Keju"},
+    {english:"Milk", correct:"Susu"},
+    {english:"Butter", correct:"Mentega"},
+    // Benda
+    {english:"Book", correct:"Buku"},
+    {english:"Chair", correct:"Kursi"},
+    {english:"Table", correct:"Meja"},
+    {english:"Pen", correct:"Pulpen"},
+    {english:"Phone", correct:"Telepon"},
+    {english:"Bag", correct:"Tas"},
+    {english:"Shoes", correct:"Sepatu"},
+    {english:"Computer", correct:"Komputer"},
+    {english:"Laptop", correct:"Laptop"},
+    {english:"Bottle", correct:"Botol"},
+    // Warna
+    {english:"Red", correct:"Merah"},
+    {english:"Blue", correct:"Biru"},
+    {english:"Green", correct:"Hijau"},
+    {english:"Yellow", correct:"Kuning"},
+    {english:"Black", correct:"Hitam"},
+    {english:"White", correct:"Putih"},
+    {english:"Orange", correct:"Oranye"},
+    {english:"Purple", correct:"Ungu"},
+    {english:"Pink", correct:"Merah Muda"},
+    // Angka
+    {english:"One", correct:"Satu"},
+    {english:"Two", correct:"Dua"},
+    {english:"Three", correct:"Tiga"},
+    {english:"Four", correct:"Empat"},
+    {english:"Five", correct:"Lima"},
+    {english:"Six", correct:"Enam"},
+    {english:"Seven", correct:"Tujuh"},
+    {english:"Eight", correct:"Delapan"},
+    {english:"Nine", correct:"Sembilan"},
+    {english:"Ten", correct:"Sepuluh"}
+];
+
+const wordEl = document.getElementById("word");
+const scoreEl = document.getElementById("score");
+const btn1 = document.getElementById("btn1");
+const btn2 = document.getElementById("btn2");
+const pauseBtn = document.getElementById("pauseBtn");
+const overlay = document.getElementById("overlay");
+const messageEl = document.getElementById("message");
+const menu = document.getElementById("menu");
+const closeMenu = document.getElementById("closeMenu");
+const resetGameBtn = document.getElementById("resetGame");
+const startMenu = document.getElementById("startMenu");
+const playBtn = document.getElementById("playBtn");
+const soundCorrect = document.getElementById("soundCorrect");
+const soundWrong = document.getElementById("soundWrong");
+
+let highScore = localStorage.getItem("bubbleHighScore") || 0;
+document.getElementById("highScore").innerText = highScore;
+
+function updateHighScore() {
+    if(score > highScore){
+        highScore = score;
+        localStorage.setItem("bubbleHighScore", highScore);
+        document.getElementById("highScore").innerText = highScore;
+    }
+}
+
+function generateWord(){
+    let availableWords = allWords.filter(w => !usedWords.includes(w.correct));
+    if(availableWords.length === 0){
+        usedWords = [];
+        availableWords = [...allWords];
+    }
+    const word = availableWords[Math.floor(Math.random()*availableWords.length)];
+    usedWords.push(word.correct);
+
+    let wrongOptions = allWords.filter(w => w.correct !== word.correct);
+    let wrong = wrongOptions[Math.floor(Math.random()*wrongOptions.length)].correct;
+
+    let options = [word.correct, wrong];
+    options.sort(() => Math.random() - 0.5);
+
+    return {
+        english: word.english,
+        option1: options[0],
+        option2: options[1],
+        correct: word.correct
+    };
+}
+
+function loadWord(){
+    currentWord = generateWord();
+    wordEl.innerText = currentWord.english;
+    btn1.innerText = currentWord.option1;
+    btn2.innerText = currentWord.option2;
+    scoreEl.innerText = "Skor: " + score;
+    messageEl.innerText = "";
+    messageEl.classList.remove("wrong");
+}
+
+function checkAnswer(answer){
+    if(paused) return;
+    if(answer === currentWord.correct){
+        score++;
+        soundCorrect.play();
+        messageEl.innerText = "Anda benar ✅";
+        messageEl.classList.remove("wrong");
+        updateHighScore();
+    } else {
+        soundWrong.play();
+        messageEl.innerText = "Anda salah ❌";
+        messageEl.classList.add("wrong");
+    }
+    setTimeout(loadWord, 800);
+}
+
+btn1.addEventListener("click", ()=> checkAnswer(btn1.innerText));
+btn2.addEventListener("click", ()=> checkAnswer(btn2.innerText));
+
+pauseBtn.addEventListener("click", ()=>{
+    paused = !paused;
+    if(paused){
+        pauseBtn.innerText = "RESUME";
+        overlay.style.display = "block";
+        menu.style.display = "block";
+    } else {
+        pauseBtn.innerText = "PAUSE";
+        overlay.style.display = "none";
+        menu.style.display = "none";
+    }
+});
+
+closeMenu.addEventListener("click", ()=>{
+    paused = false;
+    pauseBtn.innerText = "PAUSE";
+    overlay.style.display = "none";
+    menu.style.display = "none";
+});
+
+resetGameBtn.addEventListener("click", ()=>{
+    score = 0;
+    usedWords = [];
+    paused = false;
+    overlay.style.display = "none";
+    menu.style.display = "none";
+    pauseBtn.innerText = "PAUSE";
+    loadWord();
+});
+
+playBtn.addEventListener("click", ()=>{
+    startMenu.style.display = "none";
+    loadWord();
+});
+</script>
+</body>
+</html>
